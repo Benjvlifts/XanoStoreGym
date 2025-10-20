@@ -13,6 +13,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import com.app.xanostoregym.R
 import com.app.xanostoregym.api.ApiClient
 import com.app.xanostoregym.api.SessionManager
+import com.google.gson.Gson
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -21,6 +22,7 @@ import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
+import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
 import java.io.FileOutputStream
@@ -31,7 +33,6 @@ class AddProductFragment : Fragment() {
     private lateinit var progressBar: ProgressBar
     private lateinit var sessionManager: SessionManager
 
-    // Lanzador para el selector de imágenes de la galería
     private val selectImageLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
         uri?.let {
             selectedImageUri = it
@@ -91,7 +92,6 @@ class AddProductFragment : Fragment() {
                 if (!createResponse.isSuccessful) throw Exception("Error al crear el producto: ${createResponse.errorBody()?.string()}")
                 val createdProduct = createResponse.body()!!
 
-                // Si no se seleccionó imagen, terminamos el flujo aquí.
                 if (selectedImageUri == null) {
                     withContext(Dispatchers.Main) {
                         Toast.makeText(context, "Producto creado sin imagen", Toast.LENGTH_LONG).show()
@@ -105,10 +105,29 @@ class AddProductFragment : Fragment() {
                 val uploadResponse = ApiClient.instance.uploadImage(bearerToken, imagePart)
 
                 if (!uploadResponse.isSuccessful) throw Exception("Error al subir la imagen: ${uploadResponse.errorBody()?.string()}")
-                val imagePaths = uploadResponse.body() ?: throw Exception("La API no devolvió el path de la imagen")
+                val uploadedImageObject = uploadResponse.body()?.firstOrNull() ?: throw Exception("La API no devolvió los datos de la imagen")
 
-                // PASO 3: Adjuntar la imagen al producto
-                val attachJson = JSONObject().apply { put("image", imagePaths.firstOrNull()) } // Xano espera el path, no un array aquí.
+                // --- CORRECCIÓN DEFINITIVA ---
+                // PASO 3: Adjuntar la imagen al producto.
+                // Xano espera el objeto completo de la imagen que nos devolvió el endpoint de subida, no solo el path.
+                // Usaremos Gson para convertir nuestro objeto de datos (uploadedImageObject) a un string JSON,
+                // y luego lo convertiremos a un JSONObject.
+
+                // 3a. Convertimos el objeto de datos de la imagen a un string JSON
+                val imageJsonString = Gson().toJson(uploadedImageObject)
+                // 3b. Convertimos ese string a un JSONObject
+                val imageJsonObject = JSONObject(imageJsonString)
+
+                // 3c. Creamos el array y le añadimos el objeto completo
+                val imageArray = JSONArray().apply {
+                    put(imageJsonObject)
+                }
+                // 3d. Creamos el objeto final para el cuerpo del PATCH
+                val attachJson = JSONObject().apply {
+                    put("image", imageArray)
+                }
+                // --- FIN DE LA CORRECCIÓN ---
+
                 val attachRequestBody = attachJson.toString().toRequestBody("application/json".toMediaTypeOrNull())
                 val attachResponse = ApiClient.instance.attachImageToProduct(bearerToken, createdProduct.id, attachRequestBody)
 
@@ -117,7 +136,7 @@ class AddProductFragment : Fragment() {
                         Toast.makeText(context, "¡Producto creado y con imagen!", Toast.LENGTH_LONG).show()
                         clearForm(view)
                     } else {
-                        Toast.makeText(context, "Producto creado, pero falló al adjuntar imagen", Toast.LENGTH_LONG).show()
+                        Toast.makeText(context, "Producto creado, pero falló al adjuntar imagen. Error: ${attachResponse.code()}", Toast.LENGTH_LONG).show()
                     }
                 }
             } catch (e: Exception) {
@@ -131,7 +150,6 @@ class AddProductFragment : Fragment() {
         }
     }
 
-    // Función para limpiar el formulario después de crear un producto
     private fun clearForm(view: View) {
         view.findViewById<EditText>(R.id.etProductName).text.clear()
         view.findViewById<EditText>(R.id.etProductDescription).text.clear()
@@ -143,7 +161,6 @@ class AddProductFragment : Fragment() {
         selectedImageUri = null
     }
 
-    // Función auxiliar para convertir un URI a un formato que Retrofit pueda enviar
     private fun uriToMultipartBodyPart(uri: Uri): MultipartBody.Part {
         val fileDir = requireContext().applicationContext.filesDir
         val file = File(fileDir, "temp_image_file")
@@ -155,7 +172,7 @@ class AddProductFragment : Fragment() {
         requireContext().contentResolver.query(uri, null, null, null, null)?.use { cursor ->
             if (cursor.moveToFirst()) {
                 val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
-                fileName = cursor.getString(nameIndex)
+                if (nameIndex != -1) fileName = cursor.getString(nameIndex)
             }
         }
         val requestFile = file.asRequestBody(requireContext().contentResolver.getType(uri)?.toMediaTypeOrNull())
