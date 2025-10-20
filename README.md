@@ -23,7 +23,37 @@ Este proyecto sirve como una guía práctica para entender los siguientes concep
 ### 📂 Estructura del Proyecto
 El proyecto está organizado siguiendo una arquitectura por capas para separar responsabilidades.
 
-XanoStoreGym/ └── app/ ├── src/main/java/com/app/xanostoregym/ │ ├── api/ # Lógica de conexión a la red y gestión de sesión │ │ ├── ApiClient.kt # Objeto Singleton que configura Retrofit │ │ ├── ApiService.kt # Interfaz que define todos los endpoints de la API │ │ └── SessionManager.kt # Clase para guardar y leer el token con SharedPreferences │ ├── model/ # Data Classes que representan los datos de la API │ │ ├── LoginResponse.kt # Modelo para la respuesta del login │ │ └── Product.kt # Modelo para un producto y su imagen │ └── ui/ # Capa de interfaz de usuario (Activities y Fragments) │ ├── adapter/ │ │ └── ProductAdapter.kt # Adaptador para el RecyclerView de productos │ ├── AddProductFragment.kt # Lógica del formulario para crear productos │ ├── LoginActivity.kt # Lógica de la pantalla de inicio de sesión │ ├── MainActivity.kt # Contenedor principal con la BottomNavigationView │ ├── ProductDetailFragment.kt # Lógica para la vista de detalle de un producto │ ├── ProductsFragment.kt # Lógica para mostrar la lista de productos y la búsqueda │ └── ProfileFragment.kt # Lógica para mostrar perfil y cerrar sesión ├── src/main/res/ │ ├── layout/ # Archivos XML que definen la interfaz gráfica │ │ ├── activity_login.xml │ │ ├── activity_main.xml │ │ ├── fragment_add_product.xml │ │ ├── fragment_product_detail.xml │ │ ├── fragment_products.xml │ │ ├── fragment_profile.xml │ │ └── item_product.xml │ └── menu/ │ └── bottom_nav_menu.xml # Define los ítems de la barra de navegación inferior └── build.gradle.kts # Configuración del módulo y dependencias
+XanoStoreGym/
+├─ app/
+├── src/main/java/com/app/xanostoregym/
+│ ├── api/ # Lógica de conexión a la red y gestión de sesión
+│ │ ├── ApiClient.kt # Objeto Singleton que configura Retrofit
+│ │ ├── ApiService.kt # Interfaz que define todos los endpoints de la API
+│ │ └── SessionManager.kt # Clase para guardar y leer el token con SharedPreferences
+│ ├── model/ # Data Classes que representan los datos de la API
+│ │ ├── LoginResponse.kt # Modelo para la respuesta del login
+│ │ └── Product.kt # Modelo para un producto y su imagen
+│ └── ui/ # Capa de interfaz de usuario (Activities y Fragments)
+│ ├── adapter/
+│ │ └── ProductAdapter.kt # Adaptador para el RecyclerView de productos
+│ ├── AddProductFragment.kt # Lógica del formulario para crear productos
+│ ├── LoginActivity.kt # Lógica de la pantalla de inicio de sesión
+│ ├── MainActivity.kt # Contenedor principal con la BottomNavigationView
+│ ├── ProductDetailFragment.kt # Lógica para la vista de detalle de un producto
+│ ├── ProductsFragment.kt # Lógica para mostrar la lista de productos y la búsqueda
+│ └── ProfileFragment.kt # Lógica para mostrar perfil y cerrar sesión
+├── src/main/res/
+│ ├── layout/ # Archivos XML que definen la interfaz gráfica
+│ │ ├── activity_login.xml
+│ │ ├── activity_main.xml
+│ │ ├── fragment_add_product.xml
+│ │ ├── fragment_product_detail.xml
+│ │ ├── fragment_products.xml
+│ │ ├── fragment_profile.xml
+│ │ └── item_product.xml
+│ └── menu/
+│ └── bottom_nav_menu.xml # Define los ítems de la barra de navegación inferior
+└── build.gradle.kts # Configuración del módulo y dependencias
 
 ---
 ### 🔧 Configuración de Android y Librerías
