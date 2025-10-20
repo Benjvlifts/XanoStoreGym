@@ -23,6 +23,7 @@ Este proyecto sirve como una guía práctica para entender los siguientes concep
 ### 📂 Estructura del Proyecto
 El proyecto está organizado siguiendo una arquitectura por capas para separar responsabilidades.
 
+```
 XanoStoreGym/
 ├─ app/
 ├── src/main/java/com/app/xanostoregym/
@@ -54,6 +55,7 @@ XanoStoreGym/
 │ └── menu/
 │ └── bottom_nav_menu.xml # Define los ítems de la barra de navegación inferior
 └── build.gradle.kts # Configuración del módulo y dependencias
+```
 
 ---
 ### 🔧 Configuración de Android y Librerías
