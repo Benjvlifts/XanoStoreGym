@@ -23,37 +23,7 @@ Este proyecto sirve como una guía práctica para entender los siguientes concep
 ### 📂 Estructura del Proyecto
 El proyecto está organizado siguiendo una arquitectura por capas para separar responsabilidades.
 
-XanoStoreGym/
-├─ app/
-├── src/main/java/com/app/xanostoregym/
-│ ├── api/ # Lógica de conexión a la red y gestión de sesión
-│ │ ├── ApiClient.kt # Objeto Singleton que configura Retrofit
-│ │ ├── ApiService.kt # Interfaz que define todos los endpoints de la API
-│ │ └── SessionManager.kt # Clase para guardar y leer el token con SharedPreferences
-│ ├── model/ # Data Classes que representan los datos de la API
-│ │ ├── LoginResponse.kt # Modelo para la respuesta del login
-│ │ └── Product.kt # Modelo para un producto y su imagen
-│ └── ui/ # Capa de interfaz de usuario (Activities y Fragments)
-│ ├── adapter/
-│ │ └── ProductAdapter.kt # Adaptador para el RecyclerView de productos
-│ ├── AddProductFragment.kt # Lógica del formulario para crear productos
-│ ├── LoginActivity.kt # Lógica de la pantalla de inicio de sesión
-│ ├── MainActivity.kt # Contenedor principal con la BottomNavigationView
-│ ├── ProductDetailFragment.kt # Lógica para la vista de detalle de un producto
-│ ├── ProductsFragment.kt # Lógica para mostrar la lista de productos y la búsqueda
-│ └── ProfileFragment.kt # Lógica para mostrar perfil y cerrar sesión
-├── src/main/res/
-│ ├── layout/ # Archivos XML que definen la interfaz gráfica
-│ │ ├── activity_login.xml
-│ │ ├── activity_main.xml
-│ │ ├── fragment_add_product.xml
-│ │ ├── fragment_product_detail.xml
-│ │ ├── fragment_products.xml
-│ │ ├── fragment_profile.xml
-│ │ └── item_product.xml
-│ └── menu/
-│ └── bottom_nav_menu.xml # Define los ítems de la barra de navegación inferior
-└── build.gradle.kts # Configuración del módulo y dependencias
+XanoStoreGym/ └── app/ ├── src/main/java/com/app/xanostoregym/ │ ├── api/ # Lógica de conexión a la red y gestión de sesión │ │ ├── ApiClient.kt # Objeto Singleton que configura Retrofit │ │ ├── ApiService.kt # Interfaz que define todos los endpoints de la API │ │ └── SessionManager.kt # Clase para guardar y leer el token con SharedPreferences │ ├── model/ # Data Classes que representan los datos de la API │ │ ├── LoginResponse.kt # Modelo para la respuesta del login │ │ └── Product.kt # Modelo para un producto y su imagen │ └── ui/ # Capa de interfaz de usuario (Activities y Fragments) │ ├── adapter/ │ │ └── ProductAdapter.kt # Adaptador para el RecyclerView de productos │ ├── AddProductFragment.kt # Lógica del formulario para crear productos │ ├── LoginActivity.kt # Lógica de la pantalla de inicio de sesión │ ├── MainActivity.kt # Contenedor principal con la BottomNavigationView │ ├── ProductDetailFragment.kt # Lógica para la vista de detalle de un producto │ ├── ProductsFragment.kt # Lógica para mostrar la lista de productos y la búsqueda │ └── ProfileFragment.kt # Lógica para mostrar perfil y cerrar sesión ├── src/main/res/ │ ├── layout/ # Archivos XML que definen la interfaz gráfica │ │ ├── activity_login.xml │ │ ├── activity_main.xml │ │ ├── fragment_add_product.xml │ │ ├── fragment_product_detail.xml │ │ ├── fragment_products.xml │ │ ├── fragment_profile.xml │ │ └── item_product.xml │ └── menu/ │ └── bottom_nav_menu.xml # Define los ítems de la barra de navegación inferior └── build.gradle.kts # Configuración del módulo y dependencias
 
 ---
 ### 🔧 Configuración de Android y Librerías
@@ -122,58 +92,3 @@ Para los estudiantes, se recomienda seguir el flujo lógico de la aplicación:
 3. Explorar `ProductsFragment.kt` y `ProductAdapter.kt`: Ver cómo se consume una lista de datos y se muestra en un `RecyclerView`.
 4. Revisar `AddProductFragment.kt`: Analizar el flujo más complejo de creación de datos y subida de archivos.
 5. Finalmente, estudiar la capa `api` para entender cómo se configuró Retrofit.
-
-
-
-
-
-XanoStoreKotlin/
-├─ app/
-│  ├─ src/main/java/com/miapp/xanostorekotlin
-│  │  ├─ api/                      # Configuración y servicios HTTP
-│  │  │  ├─ ApiConfig.kt          # Lee base URLs desde BuildConfig
-│  │  │  ├─ RetrofitClient.kt     # Fábricas de Retrofit/OkHttp
-│  │  │  ├─ AuthInterceptor.kt    # Inserta Authorization: Bearer <token>
-│  │  │  ├─ TokenManager.kt       # Persistencia de token/usuario
-│  │  │  ├─ AuthService.kt        # POST auth/login, GET auth/me
-│  │  │  ├─ ProductService.kt     # GET/POST product
-│  │  │  └─ UploadService.kt      # POST upload (multipart)
-│  │  ├─ model/                   # Data classes (requests/responses/entidades)
-│  │  │  ├─ User.kt
-│  │  │  ├─ AuthResponse.kt
-│  │  │  ├─ LoginRequest.kt
-│  │  │  ├─ Product.kt
-│  │  │  ├─ ProductImage.kt
-│  │  │  ├─ CreateProductRequest.kt
-│  │  │  └─ CreateProductResponse.kt
-│  │  ├─ ui/
-│  │  │  ├─ MainActivity.kt       # Login
-│  │  │  ├─ HomeActivity.kt       # BottomNav: Perfil/Productos/Agregar
-│  │  │  ├─ ProductDetailActivity.kt # Detalle de producto con carrusel
-│  │  │  ├─ fragments/
-│  │  │  │  ├─ ProductsFragment.kt # Lista + búsqueda
-│  │  │  │  ├─ AddProductFragment.kt # Form + upload imágenes
-│  │  │  │  └─ ProfileFragment.kt  # Perfil y logout
-│  │  │  └─ adapter/
-│  │  │     ├─ ProductAdapter.kt   # RecyclerView de productos
-│  │  │     └─ ImagePreviewAdapter.kt # Previsualización selección de imágenes
-│  ├─ src/main/res
-│  │  ├─ layout/
-│  │  │  ├─ activity_main.xml
-│  │  │  ├─ activity_home.xml
-│  │  │  ├─ activity_product_detail.xml
-│  │  │  ├─ fragment_products.xml
-│  │  │  ├─ fragment_add_product.xml
-│  │  │  ├─ fragment_profile.xml
-│  │  │  ├─ item_product.xml
-│  │  │  ├─ item_image_preview.xml
-│  │  │  └─ item_image_slider.xml
-│  │  ├─ menu/bottom_nav_menu.xml  # Menú de navegación inferior
-│  │  ├─ values/strings.xml, colors.xml, themes.xml
-│  │  └─ values-night/themes.xml
-│  ├─ build.gradle.kts             # Configuración del módulo app
-│  └─ proguard-rules.pro
-├─ docs/ENDPOINTS.md               # Endpoints y ejemplos cURL
-├─ gradle/libs.versions.toml       # Catálogo de versiones y librerías
-├─ settings.gradle.kts             # Módulos incluidos
-└─ build.gradle.kts                # Plugins a nivel raíz
