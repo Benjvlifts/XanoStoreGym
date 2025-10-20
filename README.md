@@ -117,10 +117,3 @@ Todas las llamadas se dirigen a la URL base de Xano configurada en `ApiClient.kt
 > * **Password:** `abcd12345`
 
 ---
-### 💡 Sugerencia Pedagógica
-Para los estudiantes, se recomienda seguir el flujo lógico de la aplicación:
-1. Analizar `LoginActivity.kt`: Entender cómo se hace la llamada a la API y se guarda el token.
-2. Estudiar `MainActivity.kt`: Comprender cómo funciona la navegación con `BottomNavigationView` y `Fragments`.
-3. Explorar `ProductsFragment.kt` y `ProductAdapter.kt`: Ver cómo se consume una lista de datos y se muestra en un `RecyclerView`.
-4. Revisar `AddProductFragment.kt`: Analizar el flujo más complejo de creación de datos y subida de archivos.
-5. Finalmente, estudiar la capa `api` para entender cómo se configuró Retrofit.
