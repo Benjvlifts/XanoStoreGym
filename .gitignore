@@ -1,0 +1,20 @@
+# Archivos de build generados
+/build
+/app/build
+
+# Archivos de configuración local (no deben compartirse)
+*.iml
+.gradle
+/local.properties
+/.idea/workspace.xml
+/.idea/libraries
+/.idea/navEditor.xml
+/.idea/assetWizardSettings.xml
+
+# Archivos del sistema operativo
+.DS_Store
+Thumbs.db
+
+# Archivos de emulador y logs
+/captures
+*.log
