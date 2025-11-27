@@ -22,7 +22,53 @@ Este proyecto sirve como una guía práctica para entender los siguientes concep
 ### 📂 Estructura del Proyecto
 El proyecto está organizado siguiendo una arquitectura por capas, separando ahora la lógica de Admin y Cliente.
 ```
-XanoStoreGym/ ├─ app/ ├── src/main/java/com/app/xanostoregym/ │ ├── api/ # Lógica de red y sesión │ │ ├── ApiClient.kt # Configuración de Retrofit │ │ ├── ApiService.kt # Endpoints (Auth, Products, Users, Orders) │ │ └── SessionManager.kt # Gestión de Token, Rol, Carrito y Logout │ ├── model/ # Modelos de Datos │ │ ├── LoginResponse.kt # Incluye User con Role y Blocked status │ │ ├── Product.kt # Producto con lista de ImageResource │ │ └── [Otros modelos: Order, CartItem, ImageResource...] │ └── ui/ # Interfaz de Usuario │ ├── adapter/ │ │ ├── CartAdapter.kt # Adaptador de carrito con control de cantidad (+/-) │ │ ├── ImagePagerAdapter.kt # Adaptador para el carrusel de imágenes │ │ ├── ProductAdapter.kt # Catálogo general │ │ └── UserAdapter.kt # Lista de usuarios con Switch de bloqueo │ ├── AdminActivity.kt # Contenedor principal para Administradores │ ├── ClientActivity.kt # Contenedor principal para Clientes │ ├── LoginActivity.kt # Login inteligente con redirección por rol │ ├── AddProductFragment.kt # Creación de productos con subida múltiple │ ├── AdminUsersFragment.kt # Gestión de usuarios (Bloquear/Desbloquear) │ ├── CartFragment.kt # Carrito de compras editable │ ├── ProductDetailFragment.kt # Detalle con Carrusel y Stock │ ├── ProductsFragment.kt # Catálogo (Vista Cliente) │ └── ProfileFragment.kt # Perfil de usuario ├── src/main/res/ │ ├── drawable/ # Recursos gráficos personalizados │ │ ├── bg_border_rounded.xml # Bordes para botones de cantidad │ │ └── tab_indicator_selector.xml # Indicadores del carrusel │ ├── layout/ # Diseños XML │ │ ├── activity_admin.xml │ │ ├── activity_login.xml │ │ ├── fragment_product_detail.xml # Incluye ViewPager2 │ │ ├── item_cart.xml # Fila de carrito con botones de edición │ │ ├── item_image_carousel.xml # Ítem para el slider de fotos │ │ ├── item_user.xml # Fila de usuario con Switch │ │ └── [Otros layouts...] │ └── menu/ # Menús de navegación (Admin vs Cliente) └── build.gradle.kts # Configuración del módulo
+XanoStoreGym/
+├─ app/
+│  ├─ src/main/java/com/app/xanostoregym/
+│  │  ├─ api/                     # Lógica de red y sesión
+│  │  │  ├─ ApiClient.kt          # Configuración de Retrofit
+│  │  │  ├─ ApiService.kt         # Endpoints (Auth, Products, Users, Orders)
+│  │  │  └─ SessionManager.kt     # Gestión de Token, Rol, Carrito y Logout
+│  │  │
+│  │  ├─ model/                   # Modelos de Datos
+│  │  │  ├─ Models.kt             # Todo en uno
+│  │  │  
+│  │  │                    
+│  │  │
+│  │  └─ ui/                      # Interfaz de Usuario
+│  │     ├─ adapter/
+│  │     │  ├─ CartAdapter.kt         # Carrito con control (+/-)
+│  │     │  ├─ ImagePagerAdapter.kt   # Carrusel de imágenes
+│  │     │  ├─ ProductAdapter.kt      # Catálogo general
+│  │     │  └─ UserAdapter.kt         # Lista de usuarios (Switch de bloqueo)
+│  │     │
+│  │     ├─ AdminActivity.kt          # Contenedor para Administradores
+│  │     ├─ ClientActivity.kt         # Contenedor para Clientes
+│  │     ├─ LoginActivity.kt          # Login con redirección por rol
+│  │     ├─ AddProductFragment.kt     # Crear productos con múltiples imágenes
+│  │     ├─ AdminUsersFragment.kt     # Gestión de usuarios (Bloquear/Desbloquear)
+│  │     ├─ CartFragment.kt           # Carrito editable
+│  │     ├─ ProductDetailFragment.kt  # Detalle con ViewPager2
+│  │     ├─ ProductsFragment.kt       # Catálogo (vista Cliente)
+│  │     └─ ProfileFragment.kt        # Perfil de usuario
+│  │
+│  ├─ src/main/res/
+│  │  ├─ drawable/                    # Recursos gráficos personalizados
+│  │  │  ├─ bg_border_rounded.xml     # Bordes para botones
+│  │  │  └─ tab_indicator_selector.xml# Indicadores del carrusel
+│  │  │
+│  │  ├─ layout/                      # Diseños XML
+│  │  │  ├─ activity_admin.xml
+│  │  │  ├─ activity_login.xml
+│  │  │  ├─ fragment_product_detail.xml # Incluye ViewPager2
+│  │  │  ├─ item_cart.xml               # Fila del carrito
+│  │  │  ├─ item_image_carousel.xml     # Ítem del slider
+│  │  │  ├─ item_user.xml               # Fila usuario con Switch
+│  │  │  └─ ...                         # Otros layouts
+│  │  │
+│  │  └─ menu/                          # Menús Admin / Cliente
+│  │
+│  └─ build.gradle.kts                  # Configuración del módulo
 ```
 
 ---
