@@ -6,14 +6,16 @@ import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.ImageView
-import android.widget.ProgressBar
-import android.widget.TextView
-import android.widget.Toast
+import android.widget.*
+import androidx.viewpager2.widget.ViewPager2
 import com.app.xanostoregym.R
 import com.app.xanostoregym.api.ApiClient
+import com.app.xanostoregym.api.SessionManager
+import com.app.xanostoregym.model.CartItem
 import com.app.xanostoregym.model.Product
-import com.bumptech.glide.Glide
+import com.app.xanostoregym.ui.adapter.ImagePagerAdapter
+import com.google.android.material.tabs.TabLayout
+import com.google.android.material.tabs.TabLayoutMediator
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -25,12 +27,23 @@ class ProductDetailFragment : Fragment() {
 
     private var productId: Int = -1
     private lateinit var progressBar: ProgressBar
+    private lateinit var sessionManager: SessionManager
 
-    // Se usa un companion object con un método newInstance para pasar argumentos al fragmento.
-    // Esta es la forma recomendada y segura de hacerlo.
+    // Variables Cantidad
+    private var currentQuantity = 1
+    private var maxStock = 0
+    private var currentProduct: Product? = null
+
+    // Vistas
+    private lateinit var tvQuantity: TextView
+    private lateinit var btnPlus: Button
+    private lateinit var btnMinus: Button
+    private lateinit var btnAddToCart: Button
+    private lateinit var vpCarousel: ViewPager2
+    private lateinit var tabLayout: TabLayout
+
     companion object {
         private const val ARG_PRODUCT_ID = "product_id"
-
         fun newInstance(productId: Int): ProductDetailFragment {
             val fragment = ProductDetailFragment()
             val args = Bundle()
@@ -42,28 +55,58 @@ class ProductDetailFragment : Fragment() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // Recogemos el ID del producto que nos pasaron
-        arguments?.let {
-            productId = it.getInt(ARG_PRODUCT_ID)
-        }
+        arguments?.let { productId = it.getInt(ARG_PRODUCT_ID) }
     }
 
-    override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?,
-        savedInstanceState: Bundle?
-    ): View? {
-        return inflater.inflate(R.layout.fragment_product_detail, container, false)
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
+        val view = inflater.inflate(R.layout.fragment_product_detail, container, false)
+        sessionManager = SessionManager(requireContext())
+        return view
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         progressBar = view.findViewById(R.id.progressBarDetail)
+        vpCarousel = view.findViewById(R.id.vpImageCarousel)
+        tabLayout = view.findViewById(R.id.tabLayoutIndicator)
 
-        if (productId != -1) {
-            fetchProductDetails()
-        } else {
-            Toast.makeText(context, "ID de producto no válido", Toast.LENGTH_SHORT).show()
+        tvQuantity = view.findViewById(R.id.tvQuantity)
+        btnPlus = view.findViewById(R.id.btnPlus)
+        btnMinus = view.findViewById(R.id.btnMinus)
+        btnAddToCart = view.findViewById(R.id.btnAddToCart)
+
+        // Listeners Cantidad
+        btnPlus.setOnClickListener {
+            if (currentQuantity < maxStock) {
+                currentQuantity++
+                updateQuantityDisplay()
+            } else {
+                Toast.makeText(context, "Stock máximo alcanzado", Toast.LENGTH_SHORT).show()
+            }
         }
+
+        btnMinus.setOnClickListener {
+            if (currentQuantity > 1) {
+                currentQuantity--
+                updateQuantityDisplay()
+            }
+        }
+
+        btnAddToCart.setOnClickListener {
+            currentProduct?.let { product ->
+                if (maxStock > 0) {
+                    sessionManager.addToCart(CartItem(product, currentQuantity))
+                    Toast.makeText(context, "Añadido al carrito", Toast.LENGTH_SHORT).show()
+                    parentFragmentManager.popBackStack()
+                }
+            }
+        }
+
+        if (productId != -1) fetchProductDetails()
+    }
+
+    private fun updateQuantityDisplay() {
+        tvQuantity.text = currentQuantity.toString()
     }
 
     private fun fetchProductDetails() {
@@ -73,29 +116,28 @@ class ProductDetailFragment : Fragment() {
                 val response = ApiClient.instance.getProductById(productId)
                 withContext(Dispatchers.Main) {
                     if (response.isSuccessful) {
-                        response.body()?.let { product ->
-                            updateUI(product)
-                        }
+                        response.body()?.let { updateUI(it) }
                     } else {
-                        Toast.makeText(context, "Error al cargar los detalles", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, "Error al cargar detalles", Toast.LENGTH_SHORT).show()
                     }
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
-                    Log.e("ProductDetailFragment", "Error al obtener detalles", e)
-                    Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_LONG).show()
+                    Log.e("Detail", "Error", e)
                 }
             } finally {
-                withContext(Dispatchers.Main) {
-                    progressBar.visibility = View.GONE
-                }
+                withContext(Dispatchers.Main) { progressBar.visibility = View.GONE }
             }
         }
     }
 
     private fun updateUI(product: Product) {
+        currentProduct = product
+        maxStock = product.stock
+        currentQuantity = 1
+        updateQuantityDisplay()
+
         view?.let {
-            val ivImage = it.findViewById<ImageView>(R.id.ivProductImageDetail)
             val tvName = it.findViewById<TextView>(R.id.tvProductNameDetail)
             val tvPrice = it.findViewById<TextView>(R.id.tvProductPriceDetail)
             val tvStock = it.findViewById<TextView>(R.id.tvProductStockDetail)
@@ -103,17 +145,26 @@ class ProductDetailFragment : Fragment() {
 
             tvName.text = product.name
             tvDescription.text = product.description
-            tvStock.text = "Stock: ${product.stock}"
+            tvStock.text = "Stock disponible: ${product.stock}"
 
-            val format: NumberFormat = NumberFormat.getCurrencyInstance(Locale("es", "CL"))
+            if (product.stock == 0) {
+                btnAddToCart.isEnabled = false
+                btnAddToCart.text = "Agotado"
+                currentQuantity = 0
+                updateQuantityDisplay()
+            }
+
+            val format = NumberFormat.getCurrencyInstance(Locale("es", "CL"))
             format.maximumFractionDigits = 0
             tvPrice.text = format.format(product.price)
 
-            val imageUrl = product.image.firstOrNull()?.url
-            Glide.with(this)
-                .load(imageUrl)
-                .placeholder(android.R.drawable.ic_menu_gallery)
-                .into(ivImage)
+            // Configurar Carrusel
+            if (product.image.isNotEmpty()) {
+                val adapter = ImagePagerAdapter(product.image)
+                vpCarousel.adapter = adapter
+                // Conectar los puntos (TabLayout) con el ViewPager
+                TabLayoutMediator(tabLayout, vpCarousel) { _, _ -> }.attach()
+            }
         }
     }
 }

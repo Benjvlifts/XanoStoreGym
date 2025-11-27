@@ -28,15 +28,22 @@ import java.io.File
 import java.io.FileOutputStream
 
 class AddProductFragment : Fragment() {
-    private var selectedImageUri: Uri? = null
+    // CAMBIO 1: Ahora guardamos una LISTA de Uris, no una sola
+    private var selectedUris: List<Uri> = emptyList()
+
     private lateinit var ivProductImage: ImageView
+    private lateinit var tvImageCount: TextView // Nuevo TextView para mostrar cuántas hay
     private lateinit var progressBar: ProgressBar
     private lateinit var sessionManager: SessionManager
 
-    private val selectImageLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
-        uri?.let {
-            selectedImageUri = it
-            ivProductImage.setImageURI(it)
+    // CAMBIO 2: Usamos GetMultipleContents en lugar de GetContent
+    private val selectImageLauncher = registerForActivityResult(ActivityResultContracts.GetMultipleContents()) { uris: List<Uri> ->
+        if (uris.isNotEmpty()) {
+            selectedUris = uris
+            // Mostramos la primera imagen como previsualización
+            ivProductImage.setImageURI(uris.first())
+            // Actualizamos el texto informativo (puedes agregar este TextView al XML o usar un Toast)
+            Toast.makeText(context, "Se seleccionaron ${uris.size} imágenes", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -46,11 +53,14 @@ class AddProductFragment : Fragment() {
     ): View? {
         val view = inflater.inflate(R.layout.fragment_add_product, container, false)
         sessionManager = SessionManager(requireContext())
+
         ivProductImage = view.findViewById(R.id.ivProductImage)
-        val btnSelectImage = view.findViewById<Button>(R.id.btnSelectImage)
-        val btnCreateProduct = view.findViewById<Button>(R.id.btnCreateProduct)
         progressBar = view.findViewById(R.id.progressBar)
 
+        val btnSelectImage = view.findViewById<Button>(R.id.btnSelectImage)
+        val btnCreateProduct = view.findViewById<Button>(R.id.btnCreateProduct)
+
+        // CAMBIO 3: El launcher ahora espera un tipo de input genérico "image/*"
         btnSelectImage.setOnClickListener { selectImageLauncher.launch("image/*") }
         btnCreateProduct.setOnClickListener { createProductFlow(view) }
 
@@ -60,20 +70,20 @@ class AddProductFragment : Fragment() {
     private fun createProductFlow(view: View) {
         val token = sessionManager.fetchAuthToken()
         if (token == null) {
-            Toast.makeText(context, "Error de autenticación. Vuelve a iniciar sesión.", Toast.LENGTH_LONG).show()
+            Toast.makeText(context, "Sesión inválida", Toast.LENGTH_SHORT).show()
             return
         }
         val bearerToken = "Bearer $token"
 
         val name = view.findViewById<EditText>(R.id.etProductName).text.toString()
-        val description = view.findViewById<EditText>(R.id.etProductDescription).text.toString()
+        val desc = view.findViewById<EditText>(R.id.etProductDescription).text.toString()
         val price = view.findViewById<EditText>(R.id.etProductPrice).text.toString()
         val stock = view.findViewById<EditText>(R.id.etProductStock).text.toString()
         val brand = view.findViewById<EditText>(R.id.etProductBrand).text.toString()
         val category = view.findViewById<EditText>(R.id.etProductCategory).text.toString()
 
-        if (name.isEmpty() || price.isEmpty() || stock.isEmpty()) {
-            Toast.makeText(context, "Nombre, Precio y Stock son requeridos", Toast.LENGTH_SHORT).show()
+        if (name.isEmpty() || price.isEmpty()) {
+            Toast.makeText(context, "Complete los campos obligatorios", Toast.LENGTH_SHORT).show()
             return
         }
 
@@ -81,68 +91,58 @@ class AddProductFragment : Fragment() {
 
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                // PASO 1: Crear el producto (sin imagen)
-                val productJson = JSONObject().apply {
-                    put("name", name); put("description", description); put("price", price.toDouble())
-                    put("stock", stock.toInt()); put("brand", brand); put("category", category)
+                // 1. Crear el producto base
+                val jsonProd = JSONObject().apply {
+                    put("name", name); put("description", desc); put("price", price.toDouble())
+                    put("stock", stock.toIntOrNull() ?: 0); put("brand", brand); put("category", category)
                 }
-                val productRequestBody = productJson.toString().toRequestBody("application/json".toMediaTypeOrNull())
-                val createResponse = ApiClient.instance.createProduct(bearerToken, productRequestBody)
+                val bodyProd = jsonProd.toString().toRequestBody("application/json".toMediaTypeOrNull())
+                val resCreate = ApiClient.instance.createProduct(bearerToken, bodyProd)
 
-                if (!createResponse.isSuccessful) throw Exception("Error al crear el producto: ${createResponse.errorBody()?.string()}")
-                val createdProduct = createResponse.body()!!
+                if (resCreate.isSuccessful && resCreate.body() != null) {
+                    val productId = resCreate.body()!!.id
 
-                if (selectedImageUri == null) {
-                    withContext(Dispatchers.Main) {
-                        Toast.makeText(context, "Producto creado sin imagen", Toast.LENGTH_LONG).show()
-                        clearForm(view)
+                    // CAMBIO 4: Lógica de subida múltiple
+                    if (selectedUris.isNotEmpty()) {
+                        val imageArray = JSONArray() // Aquí acumularemos las respuestas de Xano
+
+                        // Recorremos cada imagen seleccionada
+                        for (uri in selectedUris) {
+                            try {
+                                // A) Preparamos el archivo
+                                val part = uriToMultipartBodyPart(uri)
+                                // B) Subimos la imagen individualmente
+                                val resUpload = ApiClient.instance.uploadImage(bearerToken, part)
+
+                                if (resUpload.isSuccessful && resUpload.body() != null) {
+                                    // C) Obtenemos el objeto de respuesta de Xano
+                                    val imageObj = resUpload.body()!!.first()
+                                    // D) Lo convertimos a JSON y lo guardamos en nuestro array acumulador
+                                    val imageJsonStr = Gson().toJson(imageObj)
+                                    imageArray.put(JSONObject(imageJsonStr))
+                                }
+                            } catch (e: Exception) {
+                                Log.e("UploadError", "Error subiendo una de las imágenes", e)
+                            }
+                        }
+
+                        // CAMBIO 5: Adjuntar TODAS las imágenes juntas al producto
+                        if (imageArray.length() > 0) {
+                            val attachJson = JSONObject().apply { put("image", imageArray) }
+                            val attachBody = attachJson.toString().toRequestBody("application/json".toMediaTypeOrNull())
+                            ApiClient.instance.attachImageToProduct(bearerToken, productId, attachBody)
+                        }
                     }
-                    return@launch
-                }
 
-                // PASO 2: Subir la imagen
-                val imagePart = uriToMultipartBodyPart(selectedImageUri!!)
-                val uploadResponse = ApiClient.instance.uploadImage(bearerToken, imagePart)
-
-                if (!uploadResponse.isSuccessful) throw Exception("Error al subir la imagen: ${uploadResponse.errorBody()?.string()}")
-                val uploadedImageObject = uploadResponse.body()?.firstOrNull() ?: throw Exception("La API no devolvió los datos de la imagen")
-
-                // --- CORRECCIÓN DEFINITIVA ---
-                // PASO 3: Adjuntar la imagen al producto.
-                // Xano espera el objeto completo de la imagen que nos devolvió el endpoint de subida, no solo el path.
-                // Usaremos Gson para convertir nuestro objeto de datos (uploadedImageObject) a un string JSON,
-                // y luego lo convertiremos a un JSONObject.
-
-                // 3a. Convertimos el objeto de datos de la imagen a un string JSON
-                val imageJsonString = Gson().toJson(uploadedImageObject)
-                // 3b. Convertimos ese string a un JSONObject
-                val imageJsonObject = JSONObject(imageJsonString)
-
-                // 3c. Creamos el array y le añadimos el objeto completo
-                val imageArray = JSONArray().apply {
-                    put(imageJsonObject)
-                }
-                // 3d. Creamos el objeto final para el cuerpo del PATCH
-                val attachJson = JSONObject().apply {
-                    put("image", imageArray)
-                }
-                // --- FIN DE LA CORRECCIÓN ---
-
-                val attachRequestBody = attachJson.toString().toRequestBody("application/json".toMediaTypeOrNull())
-                val attachResponse = ApiClient.instance.attachImageToProduct(bearerToken, createdProduct.id, attachRequestBody)
-
-                withContext(Dispatchers.Main) {
-                    if (attachResponse.isSuccessful) {
-                        Toast.makeText(context, "¡Producto creado y con imagen!", Toast.LENGTH_LONG).show()
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(context, "Producto Creado con ${selectedUris.size} fotos", Toast.LENGTH_LONG).show()
                         clearForm(view)
-                    } else {
-                        Toast.makeText(context, "Producto creado, pero falló al adjuntar imagen. Error: ${attachResponse.code()}", Toast.LENGTH_LONG).show()
                     }
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
-                    Log.e("AddProductFragment", "Error en flujo de creación", e)
-                    Toast.makeText(context, "Error en el proceso: ${e.message}", Toast.LENGTH_LONG).show()
+                    progressBar.visibility = View.GONE
+                    Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
                 }
             } finally {
                 withContext(Dispatchers.Main) { progressBar.visibility = View.GONE }
@@ -158,12 +158,13 @@ class AddProductFragment : Fragment() {
         view.findViewById<EditText>(R.id.etProductBrand).text.clear()
         view.findViewById<EditText>(R.id.etProductCategory).text.clear()
         ivProductImage.setImageResource(android.R.drawable.ic_menu_camera)
-        selectedImageUri = null
+        selectedUris = emptyList() // Limpiamos la lista
     }
 
     private fun uriToMultipartBodyPart(uri: Uri): MultipartBody.Part {
         val fileDir = requireContext().applicationContext.filesDir
-        val file = File(fileDir, "temp_image_file")
+        // Usamos un nombre único temporal para cada archivo para evitar sobreescritura en el ciclo
+        val file = File(fileDir, "temp_img_${System.currentTimeMillis()}.jpg")
         val inputStream = requireContext().contentResolver.openInputStream(uri)
         val outputStream = FileOutputStream(file)
         inputStream?.copyTo(outputStream)
@@ -171,8 +172,8 @@ class AddProductFragment : Fragment() {
         var fileName = "image.jpg"
         requireContext().contentResolver.query(uri, null, null, null, null)?.use { cursor ->
             if (cursor.moveToFirst()) {
-                val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
-                if (nameIndex != -1) fileName = cursor.getString(nameIndex)
+                val idx = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                if (idx != -1) fileName = cursor.getString(idx)
             }
         }
         val requestFile = file.asRequestBody(requireContext().contentResolver.getType(uri)?.toMediaTypeOrNull())

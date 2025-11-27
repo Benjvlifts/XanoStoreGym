@@ -1,84 +1,149 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".ui.ProductDetailFragment">
+    android:fillViewport="true">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical">
+        android:orientation="vertical"
+        android:paddingBottom="24dp">
 
-        <ImageView
-            android:id="@+id/ivProductImageDetail"
+        <FrameLayout
             android:layout_width="match_parent"
-            android:layout_height="300dp"
-            android:scaleType="centerCrop"
-            android:background="#e0e0e0"
-            tools:src="@tools:sample/backgrounds/scenic" />
+            android:layout_height="300dp">
+
+            <androidx.viewpager2.widget.ViewPager2
+                android:id="@+id/vpImageCarousel"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="#e0e0e0" />
+
+            <com.google.android.material.tabs.TabLayout
+                android:id="@+id/tabLayoutIndicator"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="bottom|center_horizontal"
+                android:background="@android:color/transparent"
+                app:tabBackground="@drawable/tab_indicator_selector"
+                app:tabGravity="center"
+                app:tabIndicatorHeight="0dp" />
+        </FrameLayout>
 
         <TextView
             android:id="@+id/tvProductNameDetail"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textSize="24sp"
+            android:textSize="26sp"
             android:textStyle="bold"
             android:padding="16dp"
-            tools:text="Nombre del Producto de Ejemplo" />
+            tools:text="Nombre Producto" />
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:paddingStart="16dp"
-            android:paddingEnd="16dp"
-            android:paddingBottom="8dp">
+            android:paddingHorizontal="16dp">
 
             <TextView
                 android:id="@+id/tvProductPriceDetail"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:textSize="20sp"
+                android:textSize="22sp"
                 android:textColor="@color/design_default_color_primary"
                 android:textStyle="bold"
-                tools:text="$123.456 CLP" />
+                tools:text="$99.990" />
 
             <TextView
                 android:id="@+id/tvProductStockDetail"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:textSize="16sp"
-                tools:text="Stock: 23" />
+                android:textStyle="italic"
+                tools:text="Stock: 10" />
         </LinearLayout>
 
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="Descripción"
-            android:textSize="18sp"
             android:textStyle="bold"
-            android:paddingStart="16dp"
-            android:paddingEnd="16dp"
-            android:layout_marginTop="16dp"/>
+            android:padding="16dp"
+            android:layout_marginTop="8dp"/>
 
         <TextView
             android:id="@+id/tvProductDescriptionDetail"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:padding="16dp"
+            android:paddingHorizontal="16dp"
             android:textSize="16sp"
             android:lineSpacingExtra="4dp"
-            tools:text="Esta es una descripción de ejemplo larga para el producto, que detalla sus características, beneficios y por qué es una excelente opción de compra para los clientes interesados en suplementos de alta calidad." />
+            tools:text="Descripción del producto..." />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:padding="16dp"
+            android:layout_marginTop="24dp">
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="50dp"
+                android:orientation="horizontal"
+                android:gravity="center"
+                android:background="@drawable/bg_border_rounded">
+
+                <Button
+                    android:id="@+id/btnMinus"
+                    android:layout_width="50dp"
+                    android:layout_height="match_parent"
+                    android:text="-"
+                    android:textSize="20sp"
+                    android:padding="0dp"
+                    style="@style/Widget.MaterialComponents.Button.TextButton"/>
+
+                <TextView
+                    android:id="@+id/tvQuantity"
+                    android:layout_width="40dp"
+                    android:layout_height="wrap_content"
+                    android:text="1"
+                    android:gravity="center"
+                    android:textSize="20sp"
+                    android:textStyle="bold"/>
+
+                <Button
+                    android:id="@+id/btnPlus"
+                    android:layout_width="50dp"
+                    android:layout_height="match_parent"
+                    android:text="+"
+                    android:textSize="20sp"
+                    android:padding="0dp"
+                    style="@style/Widget.MaterialComponents.Button.TextButton"/>
+            </LinearLayout>
+
+            <Space android:layout_width="16dp" android:layout_height="wrap_content"/>
+
+            <Button
+                android:id="@+id/btnAddToCart"
+                android:layout_width="0dp"
+                android:layout_height="60dp"
+                android:layout_weight="1"
+                android:text="Agregar al Carrito"
+                app:cornerRadius="8dp"/>
+        </LinearLayout>
 
         <ProgressBar
             android:id="@+id/progressBarDetail"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center"
-            android:visibility="gone"
-            android:layout_marginTop="24dp"/>
+            android:visibility="gone" />
 
     </LinearLayout>
 </ScrollView>

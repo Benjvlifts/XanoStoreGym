@@ -4,14 +4,11 @@ import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import android.view.View
-import android.widget.Button
-import android.widget.EditText
-import android.widget.ProgressBar
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import com.app.xanostoregym.R
 import com.app.xanostoregym.api.ApiClient
 import com.app.xanostoregym.api.SessionManager
+import com.app.xanostoregym.databinding.ActivityLoginBinding
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -21,83 +18,119 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
 
 class LoginActivity : AppCompatActivity() {
+
+    private lateinit var binding: ActivityLoginBinding
     private lateinit var sessionManager: SessionManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        binding = ActivityLoginBinding.inflate(layoutInflater)
+        setContentView(binding.root)
+
         sessionManager = SessionManager(this)
 
-        // Si ya hay un token, vamos directo a la pantalla principal
+        // 1. Verificar si ya existe una sesión guardada al abrir la app
         if (sessionManager.fetchAuthToken() != null) {
-            navigateToMain()
+            // Si ya hay token, redirigimos según el rol guardado
+            navigateByRole(sessionManager.fetchUserRole())
             return
         }
 
-        setContentView(R.layout.activity_login)
-        val etEmail = findViewById<EditText>(R.id.etEmail)
-        val etPassword = findViewById<EditText>(R.id.etPassword)
-        val btnLogin = findViewById<Button>(R.id.btnLogin)
-        val progressBar = findViewById<ProgressBar>(R.id.progressBar)
+        // 2. Configurar el botón de Login
+        binding.btnLogin.setOnClickListener {
+            val email = binding.etEmail.text.toString().trim()
+            val pass = binding.etPassword.text.toString().trim()
 
-        btnLogin.setOnClickListener {
-            val email = etEmail.text.toString().trim()
-            val password = etPassword.text.toString().trim()
-
-            if (email.isNotEmpty() && password.isNotEmpty()) {
-                progressBar.visibility = View.VISIBLE
-                loginUser(email, password)
+            if (email.isNotEmpty() && pass.isNotEmpty()) {
+                performLogin(email, pass)
             } else {
-                Toast.makeText(this, "Por favor, completa todos los campos", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Por favor complete todos los campos", Toast.LENGTH_SHORT).show()
             }
         }
     }
 
-    private fun loginUser(email: String, password: String) {
+    private fun performLogin(email: String, pass: String) {
+        // Mostrar cargando
+        binding.progressBar.visibility = View.VISIBLE
+        binding.btnLogin.isEnabled = false
+
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val jsonObject = JSONObject().apply {
+                // A) Preparar el JSON para el login
+                val json = JSONObject().apply {
                     put("email", email)
-                    put("password", password)
+                    put("password", pass)
                 }
-                val requestBody = jsonObject.toString().toRequestBody("application/json".toMediaTypeOrNull())
-                val response = ApiClient.instance.login(requestBody)
+                val body = json.toString().toRequestBody("application/json".toMediaTypeOrNull())
 
-                withContext(Dispatchers.Main) {
-                    if (response.isSuccessful) {
-                        val loginResponse = response.body()
-                        // Esta comprobación ahora sí será verdadera
-                        if (loginResponse != null) {
-                            sessionManager.saveAuthToken(loginResponse.authToken)
+                // B) Llamada al endpoint /auth/login
+                val loginRes = ApiClient.instance.login(body)
 
-                            // 👇 USA UN SAFE CALL "?." PARA ACCEDER AL NOMBRE DE FORMA SEGURA
-                            // Si el usuario es nulo, usará "Usuario" como nombre por defecto.
-                            val userName = loginResponse.user?.name ?: "Usuario"
+                if (loginRes.isSuccessful && loginRes.body() != null) {
+                    val token = loginRes.body()!!.authToken
 
-                            Toast.makeText(this@LoginActivity, "¡Bienvenido, $userName!", Toast.LENGTH_LONG).show()
-                            navigateToMain()
+                    // C) ¡IMPORTANTE! Llamar a /auth/me para verificar bloqueo y rol real
+                    // (El login a veces no devuelve todos los datos actualizados, mejor verificar siempre)
+                    val meRes = ApiClient.instance.getMe("Bearer $token")
+
+                    withContext(Dispatchers.Main) {
+                        binding.progressBar.visibility = View.GONE
+                        binding.btnLogin.isEnabled = true
+
+                        if (meRes.isSuccessful && meRes.body() != null) {
+                            val user = meRes.body()!!
+
+                            // --- D) VALIDACIÓN DE BLOQUEO ---
+                            if (user.blocked == true) {
+                                // 🛑 EL USUARIO ESTÁ BLOQUEADO
+                                Toast.makeText(this@LoginActivity, "TU CUENTA HA SIDO BLOQUEADA POR EL ADMINISTRADOR", Toast.LENGTH_LONG).show()
+                                sessionManager.clearAuthToken() // Aseguramos que no se guarde nada
+                            } else {
+                                // ✅ EL USUARIO ESTÁ ACTIVO
+                                sessionManager.saveAuthToken(token)
+
+                                // Guardamos el rol (si viene nulo, asumimos cliente)
+                                val role = user.role ?: "client"
+                                sessionManager.saveUserRole(role)
+
+                                Toast.makeText(this@LoginActivity, "Bienvenido ${user.name}", Toast.LENGTH_SHORT).show()
+                                navigateByRole(role)
+                            }
+                            // --------------------------------
+
                         } else {
-                            // Este bloque ya no se ejecutará si el login es exitoso
-                            Toast.makeText(this@LoginActivity, "Error al procesar la respuesta", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(this@LoginActivity, "Error al obtener perfil de usuario", Toast.LENGTH_SHORT).show()
                         }
-                    } else {
-                        Toast.makeText(this@LoginActivity, "Credenciales incorrectas", Toast.LENGTH_SHORT).show()
+                    }
+                } else {
+                    withContext(Dispatchers.Main) {
+                        binding.progressBar.visibility = View.GONE
+                        binding.btnLogin.isEnabled = true
+                        Toast.makeText(this@LoginActivity, "Credenciales inválidas", Toast.LENGTH_SHORT).show()
                     }
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
-                    Log.e("LoginActivity", "Error en la llamada de login", e)
-                    Toast.makeText(this@LoginActivity, "Error: ${e.message}", Toast.LENGTH_LONG).show()
-                }
-            } finally {
-                withContext(Dispatchers.Main) {
-                    findViewById<ProgressBar>(R.id.progressBar)?.visibility = View.GONE
+                    binding.progressBar.visibility = View.GONE
+                    binding.btnLogin.isEnabled = true
+                    Log.e("LoginError", "Error: ${e.message}")
+                    Toast.makeText(this@LoginActivity, "Error de conexión: Verifique su internet", Toast.LENGTH_SHORT).show()
                 }
             }
         }
     }
 
-    private fun navigateToMain() {
-        startActivity(Intent(this, MainActivity::class.java))
-        finish() // Cierra esta actividad para que el usuario no pueda volver
+    private fun navigateByRole(role: String) {
+        val intent = if (role == "admin") {
+            // Si es admin, ir a la pantalla de Admin
+            Intent(this, AdminActivity::class.java)
+        } else {
+            // Si es cualquier otra cosa (cliente), ir a la pantalla de Cliente
+            Intent(this, ClientActivity::class.java) // Ojo: En tu código anterior era MainActivity o ClientActivity, usa el que corresponda
+        }
+        // Flags para limpiar el historial y que no puedan volver al login con "atrás"
+        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        startActivity(intent)
+        finish()
     }
 }
